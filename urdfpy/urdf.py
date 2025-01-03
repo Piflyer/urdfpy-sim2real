@@ -3482,9 +3482,8 @@ class URDF(URDFType):
 
         # Create an array of times that loops from 0 to 1 and back to 0
         fps = 30.0
-        n_steps = int(loop_time * fps / 2.0)
+        n_steps = int(loop_time * fps)
         times = np.linspace(0.0, 1.0, n_steps)
-        times = np.hstack((times, np.flip(times)))
 
         # Create bin edges in the range [0, 1] for each trajectory step
         bins = np.arange(traj_len) / (float(traj_len) - 1.0)
@@ -3574,6 +3573,7 @@ class URDF(URDFType):
             scene.add(mesh, pose=pose)
         if not jupyter:
             pyrender.Viewer(scene, use_raymond_lighting=True)
+            
         else:
             # add a camera to the scene
             camera = pyrender.PerspectiveCamera(yfov=np.pi / 3.0, aspectRatio=1.0)
@@ -3587,12 +3587,12 @@ class URDF(URDFType):
             scene.add(camera, pose=camera_pose)
             # add lights
             light = pyrender.SpotLight(color=np.ones(3), intensity=3.0,
-                                        innerConeAngle=np.pi/16.0)
+                                        innerConeAngle=np.pi/32.0)
             scene.add(light, pose=camera_pose)
             # zoom camera out 
             camera_pose[2,3] = 1.0
             scene.add(camera, pose=camera_pose)
-            r = pyrender.OffscreenRenderer(viewport_width=640*2, viewport_height=480*2)
+            r = pyrender.OffscreenRenderer(viewport_width=480, viewport_height=480)
             color, depth = r.render(scene)
             r.delete()
 
