@@ -19,7 +19,9 @@ Extensive API documentation is provided [here](https://urdfpy.readthedocs.io/en/
 You can install urdfpy directly from pip.
 
 ```bash
-pip install urdfpy
+git clone https://github.com/Piflyer/urdfpy-sim2real.git
+cd urdfpy
+pip install -e .
 ```
 
 ## User Guide
