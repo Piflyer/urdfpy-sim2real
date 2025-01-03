@@ -20,7 +20,7 @@ You can install urdfpy directly from pip.
 
 ```bash
 git clone https://github.com/Piflyer/urdfpy-sim2real.git
-cd urdfpy
+cd urdfpy-sim2real && cd urdfpy
 pip install -e .
 ```
 
