@@ -366,7 +366,7 @@ class Cylinder(URDFType):
     def __init__(self, radius, length):
         self.radius = radius
         self.length = length
-        self._meshes = []
+        self._meshes = None
 
     @property
     def radius(self):
@@ -377,7 +377,7 @@ class Cylinder(URDFType):
     @radius.setter
     def radius(self, value):
         self._radius = float(value)
-        self._meshes = []
+        self._meshes = None
 
     @property
     def length(self):
@@ -388,7 +388,7 @@ class Cylinder(URDFType):
     @length.setter
     def length(self, value):
         self._length = float(value)
-        self._meshes = []
+        self._meshes = None
 
     @property
     def meshes(self):
@@ -399,7 +399,7 @@ class Cylinder(URDFType):
             self._meshes = [trimesh.creation.cylinder(
                 radius=self.radius, height=self.length
             )]
-        return self._meshes
+        return self._mesh
 
     def copy(self, prefix='', scale=None):
         """Create a deep copy with the prefix applied to all names.
@@ -895,7 +895,7 @@ class Material(URDFType):
     @color.setter
     def color(self, value):
         if value is not None:
-            value = np.asanyarray(value).astype(np.float)
+            value = np.asanyarray(value).astype(float)
             value = np.clip(value, 0.0, 1.0)
             if value.shape != (4,):
                 raise ValueError('Color must be a (4,) float')
@@ -2161,8 +2161,6 @@ class Joint(URDFType):
     @axis.setter
     def axis(self, value):
         if value is None:
-            value = np.array([1.0, 0.0, 0.0], dtype=np.float64)
-        elif np.linalg.norm(value) < 1e-4:
             value = np.array([1.0, 0.0, 0.0], dtype=np.float64)
         else:
             value = np.asanyarray(value, dtype=np.float64)
@@ -3524,6 +3522,9 @@ class URDF(URDFType):
         v = pyrender.Viewer(scene, run_in_thread=True,
                             use_raymond_lighting=True,
                             view_center=blp[:3,3])
+        
+        # v = pyrender.OffscreenRenderer(scene, run_in_thread=True, view_center=blp[:3,3])
+
 
         # Now, run our loop
         i = 0
@@ -3544,7 +3545,7 @@ class URDF(URDFType):
 
             time.sleep(1.0 / fps)
 
-    def show(self, cfg=None, use_collision=False):
+    def show(self, cfg=None, use_collision=False, jupyter=False):
         """Visualize the URDF in a given configuration.
 
         Parameters
@@ -3571,7 +3572,35 @@ class URDF(URDFType):
             pose = fk[tm]
             mesh = pyrender.Mesh.from_trimesh(tm, smooth=False)
             scene.add(mesh, pose=pose)
-        pyrender.Viewer(scene, use_raymond_lighting=True)
+        if not jupyter:
+            pyrender.Viewer(scene, use_raymond_lighting=True)
+        else:
+            # add a camera to the scene
+            camera = pyrender.PerspectiveCamera(yfov=np.pi / 3.0, aspectRatio=1.0)
+            s = np.sqrt(2)/2
+            camera_pose = np.array([
+                [0.0, -s,   s,   0.3],
+                [1.0,  0.0, 0.0, 0.0],
+                [0.0,  s,   s,   0.3],
+                [0.0,  0.0, 0.0, 1.0]
+            ])
+            scene.add(camera, pose=camera_pose)
+            # add lights
+            light = pyrender.SpotLight(color=np.ones(3), intensity=3.0,
+                                        innerConeAngle=np.pi/16.0)
+            scene.add(light, pose=camera_pose)
+            # zoom camera out 
+            camera_pose[2,3] = 1.0
+            scene.add(camera, pose=camera_pose)
+            r = pyrender.OffscreenRenderer(viewport_width=640*2, viewport_height=480*2)
+            color, depth = r.render(scene)
+            r.delete()
+
+            import matplotlib.pyplot as plt
+            plt.figure(figsize=(20,20))
+            plt.imshow(color)
+            plt.show()
+        # pyrender.OffscreenRenderer(scene, viewport_height=800)
 
     def copy(self, name=None, prefix='', scale=None, collision_only=False):
         """Make a deep copy of the URDF.
